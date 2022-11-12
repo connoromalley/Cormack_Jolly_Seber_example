@@ -1,0 +1,34 @@
+# CJS model
+
+model {
+    # priors... phi is survival and p is capture (or recapture?) probability
+    b0.phi ~ dnorm( 0, 0.001 )T(-10,10) # fit the priors to a normal distribution... what is T??
+    b1.phi ~ dnorm( 0, 0.001 )T(-10,10) # new prior for female
+    b0.p ~ dnorm( 0, 0.001 )T(-10,10)
+    
+    logit(mean.phi.male) <- b0.phi                      # these lines (9-10) are really just for reporting results
+    logit(mean.phi.female) <- b0.phi + b1.phi
+    logit(mean.p) <- b0.p
+    
+    for( i in 1:nind ){             # what is nind again? FOUND IT! "n individuals" this is a counter for the number of individual 
+                                    # animals... set to nAnimal in the R code
+      for( t in f[i]:(nocc-1) ){
+        logit(phi[i,t]) <- b0.phi + b1.phi*female[i]   #
+        p[i,t] <- mean.p
+      }
+    }
+    
+    # likelihood
+    for( i in 1:nind ){
+      z[i,f[i]] <- 1
+      for( t in (f[i]+1):nocc ){
+        # state
+        z[i,t] ~ dbern( mu1[i,t] )              # what is little t? is this the time period?
+        mu1[i,t] <- phi[i, t-1] * z[i,t-1]
+        # observation
+        y[i,t] ~ dbern( mu2[i,t] )
+        mu2[i,t] <- p[i,t-1] * z[i,t]
+      }
+    }
+  
+  }
